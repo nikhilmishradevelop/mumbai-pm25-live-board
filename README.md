@@ -11,7 +11,7 @@ Teams upload their two selected files once; the board rescores them every hour a
 - **Team names** must match a name on the Zindi leaderboard (list read 12 Nov, `zindi_teams.json`), any capitalisation.
 
 ## How it is built
-- Database: Supabase (free). Setup in order: `supabase.sql`, `writer.sql`, `teams.sql`, `no_delete.sql` (entries cannot be deleted; a team can replace its files with its edit code).
+- Database: Supabase (free). Setup in order: `supabase.sql`, `writer.sql`, `teams.sql`, `no_delete.sql`, `final_entries.sql` (one final entry per team: no edit code, no replacing, no deleting; the board shows only the best of the two files).
 - `update_truth.py` (standard library only) fetches the readings and writes them through `put_truth`, a function that only accepts
   a write token whose SHA-256 is stored in the database. It runs every hour from `.github/workflows/update_truth.yml`.
 - Repository secrets: `OPENAQ_KEY`, `BOARD_WRITE_TOKEN`. The Supabase URL and publishable key in the code are public by design.

@@ -48,7 +48,7 @@ button:disabled { opacity: 0.5; cursor: default; }
     <div class="status" id="status">Loading...</div>
     <div class="tablewrap">
       <table>
-        <thead><tr><th>#</th><th>Team</th><th>Best RMSE</th><th>File 1</th><th>File 2</th><th>Hours</th></tr></thead>
+        <thead><tr><th>#</th><th>Team</th><th>Best RMSE</th><th>Hours</th></tr></thead>
         <tbody id="board"></tbody>
       </table>
     </div>
@@ -57,8 +57,7 @@ button:disabled { opacity: 0.5; cursor: default; }
   <section class="card">
     <h2>Add your files</h2>
     <form id="form">
-      <label>Team name (as on the Zindi leaderboard)<input type="text" id="team" maxlength="60" required list="teams" autocomplete="off" placeholder="Start typing your team or user name"><datalist id="teams"></datalist></label>
-      <label>Edit code (to replace your files later)<input type="password" id="code" minlength="4" required placeholder="At least 4 characters"></label>
+      <label style="grid-column: 1 / -1">Team name (as on the Zindi leaderboard)<input type="text" id="team" maxlength="60" required list="teams" autocomplete="off" placeholder="Start typing your team or user name"><datalist id="teams"></datalist></label>
       <label>Selected file 1 (CSV)<input type="file" id="fa" accept=".csv,text/csv" required></label>
       <label>Selected file 2 (CSV)<input type="file" id="fb" accept=".csv,text/csv" required></label>
       <div class="row">
@@ -66,7 +65,7 @@ button:disabled { opacity: 0.5; cursor: default; }
         <span id="msg"></span>
       </div>
     </form>
-    <p class="note">Upload the two files you selected on Zindi. Only the 192 values for 11-12 Nov (4 stations x 48 hours) are read from each file and stored. Nobody else can see your predictions, only your scores.</p>
+    <p class="note">Upload the two files you selected on Zindi. Each team can upload once, and entries are final. Only the 192 values for 11-12 Nov (4 stations x 48 hours) are read from each file and stored. Nobody can see your predictions. The board shows only the better of your two scores.</p>
   </section>
 
   <section class="card note">
@@ -112,8 +111,8 @@ async function load() {
       `<span>Readings fetched: <b>${upd ? new Date(upd).toLocaleString() : "-"}</b></span><span>Teams: <b>${rows.length}</b></span>`;
     const me = myTeam().toLowerCase();
     $("board").innerHTML = rows.map((r, i) => `<tr class="${r.team_name.toLowerCase() === me ? "mine" : ""}"><td>${r.best == null ? "-" : i + 1}</td><td>${esc(r.team_name)}</td>` +
-      `<td class="best">${f2(r.best)}</td><td>${f2(r.file_a)}</td><td>${f2(r.file_b)}</td><td>${r.hours}</td></tr>`).join("") ||
-      `<tr><td colspan="6" style="text-align:center">No teams yet. Be the first.</td></tr>`;
+      `<td class="best">${f2(r.best)}</td><td>${r.hours}</td></tr>`).join("") ||
+      `<tr><td colspan="4" style="text-align:center">No teams yet. Be the first.</td></tr>`;
   } catch (e) { $("status").textContent = "Could not load the board: " + e.message; }
 }
 async function readFile(file) {
@@ -136,9 +135,9 @@ $("form").addEventListener("submit", async (ev) => {
   try {
     if (!$("fa").files[0] || !$("fb").files[0]) throw new Error("Please choose both of your selected files.");
     const a = await readFile($("fa").files[0]); const b = await readFile($("fb").files[0]);
-    const res = await api("rpc/submit", { p_team: $("team").value, p_code: $("code").value, p_a: a, p_b: b });
+    const res = await api("rpc/submit", { p_team: $("team").value, p_a: a, p_b: b });
     try { localStorage.setItem("team", $("team").value.trim()); } catch {}
-    say(res === "replaced" ? "Files replaced." : "Saved. Refresh this page any time to see the new score."); await load();
+    say("Saved. Refresh this page any time to see the new score."); await load();
   } catch (e) { say(e.message, true); } finally { $("send").disabled = false; }
 });
 api("zindi_teams?select=name&order=name").then((t) => { $("teams").innerHTML = t.map((r) => `<option value="${esc(r.name)}">`).join(""); }).catch(() => {});
