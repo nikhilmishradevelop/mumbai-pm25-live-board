@@ -1,0 +1,18 @@
+name: update truth
+on:
+  schedule:
+    - cron: "10 * * * *"   # every hour at :10 (GitHub may start it a few minutes late)
+  workflow_dispatch: {}      # also a "Run workflow" button on the Actions tab
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python update_truth.py
+        env:
+          OPENAQ_KEY: ${{ secrets.OPENAQ_KEY }}
+          BOARD_WRITE_TOKEN: ${{ secrets.BOARD_WRITE_TOKEN }}

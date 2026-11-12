@@ -1,0 +1,153 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Mumbai PM2.5 Live Board</title>
+<meta name="description" content="Unofficial live scores for the Zindi Google Mumbai Data Challenge, on the OpenAQ readings of 11-12 Nov 2026.">
+<style>
+:root { --bg: #fafaf9; --card: #ffffff; --text: #1c1917; --muted: #78716c; --line: #e7e5e4; --accent: #0f766e; --accent-soft: #ccfbf1; --err: #b91c1c; --mine: #fef9c3; }
+@media (prefers-color-scheme: dark) { :root { --bg: #0c0a09; --card: #1c1917; --text: #f5f5f4; --muted: #a8a29e; --line: #292524; --accent: #2dd4bf; --accent-soft: #134e4a; --err: #f87171; --mine: #3f3a12; } }
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+h1 { font-size: 1.5rem; margin: 0 0 4px; }
+h2 { font-size: 1.1rem; margin: 0 0 12px; }
+.sub { color: var(--muted); margin: 0 0 20px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 16px; margin-bottom: 16px; }
+.status { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font-size: 0.9rem; margin-bottom: 12px; }
+.status b { color: var(--text); font-variant-numeric: tabular-nums; }
+.tablewrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { text-align: right; padding: 8px 10px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+th:nth-child(2), td:nth-child(2) { text-align: left; white-space: normal; }
+th { color: var(--muted); font-weight: 600; font-size: 0.85rem; }
+td.best { font-weight: 700; color: var(--accent); }
+tr.mine td { background: var(--mine); }
+form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+label { display: flex; flex-direction: column; gap: 4px; font-size: 0.9rem; color: var(--muted); }
+input[type=text], input[type=password] { font: inherit; padding: 8px 10px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); color: var(--text); }
+input[type=file] { font-size: 0.85rem; color: var(--text); }
+.row { grid-column: 1 / -1; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+button { font: inherit; padding: 8px 14px; border-radius: 6px; border: 1px solid var(--accent); background: var(--accent); color: var(--bg); cursor: pointer; }
+button.ghost { background: transparent; color: var(--accent); }
+button:disabled { opacity: 0.5; cursor: default; }
+#msg { font-size: 0.9rem; }
+#msg.err { color: var(--err); }
+.note { color: var(--muted); font-size: 0.85rem; }
+.note li { margin-bottom: 4px; }
+@media (max-width: 560px) { form { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<main>
+  <h1>Mumbai PM2.5 Live Board</h1>
+  <p class="sub">Unofficial live scores for the Zindi Google Mumbai Data Challenge, on the 11-12 Nov 2026 window. Upload your two final files once, then refresh this page to see your score update every hour.</p>
+
+  <section class="card">
+    <div class="status" id="status">Loading...</div>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>#</th><th>Team</th><th>Best RMSE</th><th>File 1</th><th>File 2</th><th>Hours</th></tr></thead>
+        <tbody id="board"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Add your files</h2>
+    <form id="form">
+      <label>Team name (as on the Zindi leaderboard)<input type="text" id="team" maxlength="60" required list="teams" autocomplete="off" placeholder="Start typing your team or user name"><datalist id="teams"></datalist></label>
+      <label>Edit code (to replace or delete later)<input type="password" id="code" minlength="4" required placeholder="At least 4 characters"></label>
+      <label>Selected file 1 (CSV)<input type="file" id="fa" accept=".csv,text/csv" required></label>
+      <label>Selected file 2 (CSV)<input type="file" id="fb" accept=".csv,text/csv" required></label>
+      <div class="row">
+        <button type="submit" id="send">Upload</button>
+        <button type="button" class="ghost" id="del">Delete my entry</button>
+        <span id="msg"></span>
+      </div>
+    </form>
+    <p class="note">Upload the two files you selected on Zindi. Only the 192 values for 11-12 Nov (4 stations x 48 hours) are read from each file and stored. Nobody else can see your predictions, only your scores.</p>
+  </section>
+
+  <section class="card note">
+    <h2>How scoring works</h2>
+    <ul>
+      <li>Truth: hourly PM2.5 from <a href="https://openaq.org" target="_blank" rel="noopener">OpenAQ</a> (data from CPCB / IITM monitors), fetched every hour.</li>
+      <li>Only hours with at least 3 readings count, and each file's RMSE is pooled over all four stations. A team ranks by its better file, as on Zindi.</li>
+      <li>This is not Zindi's official score. Zindi uses its own copy of the data and may count hours differently. Official results come from Zindi.</li>
+      <li>Team names must match a name on the Zindi leaderboard (any capitalisation). Please upload only your own team's files.</li>
+    </ul>
+  </section>
+</main>
+<script>
+const SUPABASE_URL = "https://kpbsmoupajiuxgazebgk.supabase.co";
+const SUPABASE_KEY = "sb_publishable_WQ6aHckixs5FQHWj2SMg8w_l6B6QzKu";   // publishable key: public by design
+const STATIONS = [11606, 11611, 3409510, 3409511];
+const IDS = [];   // the 192 scored rows: hour-ends 11 Nov 01:00 .. 13 Nov 00:00 IST
+for (const s of STATIONS) for (let k = 1; k <= 48; k++) { const d = 11 + Math.floor(k / 24), h = k % 24; IDS.push(`MUM_${s}_202611${d}T${String(h).padStart(2, "0")}00_IST`); }
+const $ = (id) => document.getElementById(id);
+function headers() {
+  const h = { apikey: SUPABASE_KEY, "Content-Type": "application/json" };
+  if (!SUPABASE_KEY.startsWith("sb_")) h.Authorization = `Bearer ${SUPABASE_KEY}`;
+  return h;
+}
+async function api(path, body) {
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, body === undefined ? { headers: headers() } : { method: "POST", headers: headers(), body: JSON.stringify(body) });
+  const t = await r.text(); const j = t ? JSON.parse(t) : null;
+  if (!r.ok) throw new Error((j && (j.message || j.hint)) || `HTTP ${r.status}`);
+  return j;
+}
+function myTeam() { try { return localStorage.getItem("team") || ""; } catch { return ""; } }
+const f2 = (x) => (x == null ? "-" : x.toFixed(2));
+const esc = (s) => s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+async function load() {
+  try {
+    const [rows, truth] = await Promise.all([api("rpc/leaderboard", {}), api("truth?select=id,n,updated_at")]);
+    const scored = truth.filter((t) => t.n >= 3);
+    const latest = scored.map((t) => t.id.slice(-17, -4)).sort().pop();
+    const upd = truth.map((t) => t.updated_at).sort().pop();
+    const fmt = (s) => `${+s.slice(6, 8)} Nov ${s.slice(9, 11)}:${s.slice(11, 13)}`;
+    $("status").innerHTML = `<span>Scored station-hours: <b>${scored.length}</b> of 192</span>` +
+      `<span>Latest hour: <b>${latest ? fmt(latest) + " IST" : "-"}</b></span>` +
+      `<span>Readings fetched: <b>${upd ? new Date(upd).toLocaleString() : "-"}</b></span><span>Teams: <b>${rows.length}</b></span>`;
+    const me = myTeam().toLowerCase();
+    $("board").innerHTML = rows.map((r, i) => `<tr class="${r.team_name.toLowerCase() === me ? "mine" : ""}"><td>${r.best == null ? "-" : i + 1}</td><td>${esc(r.team_name)}</td>` +
+      `<td class="best">${f2(r.best)}</td><td>${f2(r.file_a)}</td><td>${f2(r.file_b)}</td><td>${r.hours}</td></tr>`).join("") ||
+      `<tr><td colspan="6" style="text-align:center">No teams yet. Be the first.</td></tr>`;
+  } catch (e) { $("status").textContent = "Could not load the board: " + e.message; }
+}
+async function readFile(file) {
+  const lines = (await file.text()).split(/\r?\n/).filter((l) => l.trim());
+  const head = lines[0].split(",").map((c) => c.trim().replace(/^"|"$/g, ""));
+  const iId = head.indexOf("ID"), iT = head.indexOf("Target");
+  if (iId < 0 || iT < 0) throw new Error(`${file.name}: needs columns ID and Target`);
+  const want = new Set(IDS), out = {};
+  for (const l of lines.slice(1)) {
+    const c = l.split(","); const id = c[iId].trim().replace(/^"|"$/g, "");
+    if (want.has(id)) { const v = Number(c[iT]); if (!Number.isFinite(v) || v < 0) throw new Error(`${file.name}: bad value for ${id}`); out[id] = v; }
+  }
+  const miss = IDS.filter((id) => !(id in out));
+  if (miss.length) throw new Error(`${file.name}: ${miss.length} of the 192 rows for 11-12 Nov are missing (e.g. ${miss[0]})`);
+  return out;
+}
+function say(text, err) { $("msg").textContent = text; $("msg").className = err ? "err" : ""; }
+$("form").addEventListener("submit", async (ev) => {
+  ev.preventDefault(); $("send").disabled = true; say("Uploading...");
+  try {
+    if (!$("fa").files[0] || !$("fb").files[0]) throw new Error("Please choose both of your selected files.");
+    const a = await readFile($("fa").files[0]); const b = await readFile($("fb").files[0]);
+    const res = await api("rpc/submit", { p_team: $("team").value, p_code: $("code").value, p_a: a, p_b: b });
+    try { localStorage.setItem("team", $("team").value.trim()); } catch {}
+    say(res === "replaced" ? "Files replaced." : "Saved. Refresh this page any time to see the new score."); await load();
+  } catch (e) { say(e.message, true); } finally { $("send").disabled = false; }
+});
+$("del").addEventListener("click", async () => {
+  if (!$("team").value || !$("code").value) { say("Enter the team name and edit code first.", true); return; }
+  try { await api("rpc/delete_entry", { p_team: $("team").value, p_code: $("code").value }); say("Entry deleted."); await load(); } catch (e) { say(e.message, true); }
+});
+api("zindi_teams?select=name&order=name").then((t) => { $("teams").innerHTML = t.map((r) => `<option value="${esc(r.name)}">`).join(""); }).catch(() => {});
+load(); setInterval(load, 5 * 60 * 1000);
+</script>
+</body>
+</html>
