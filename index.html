@@ -58,12 +58,11 @@ button:disabled { opacity: 0.5; cursor: default; }
     <h2>Add your files</h2>
     <form id="form">
       <label>Team name (as on the Zindi leaderboard)<input type="text" id="team" maxlength="60" required list="teams" autocomplete="off" placeholder="Start typing your team or user name"><datalist id="teams"></datalist></label>
-      <label>Edit code (to replace or delete later)<input type="password" id="code" minlength="4" required placeholder="At least 4 characters"></label>
+      <label>Edit code (to replace your files later)<input type="password" id="code" minlength="4" required placeholder="At least 4 characters"></label>
       <label>Selected file 1 (CSV)<input type="file" id="fa" accept=".csv,text/csv" required></label>
       <label>Selected file 2 (CSV)<input type="file" id="fb" accept=".csv,text/csv" required></label>
       <div class="row">
         <button type="submit" id="send">Upload</button>
-        <button type="button" class="ghost" id="del">Delete my entry</button>
         <span id="msg"></span>
       </div>
     </form>
@@ -141,10 +140,6 @@ $("form").addEventListener("submit", async (ev) => {
     try { localStorage.setItem("team", $("team").value.trim()); } catch {}
     say(res === "replaced" ? "Files replaced." : "Saved. Refresh this page any time to see the new score."); await load();
   } catch (e) { say(e.message, true); } finally { $("send").disabled = false; }
-});
-$("del").addEventListener("click", async () => {
-  if (!$("team").value || !$("code").value) { say("Enter the team name and edit code first.", true); return; }
-  try { await api("rpc/delete_entry", { p_team: $("team").value, p_code: $("code").value }); say("Entry deleted."); await load(); } catch (e) { say(e.message, true); }
 });
 api("zindi_teams?select=name&order=name").then((t) => { $("teams").innerHTML = t.map((r) => `<option value="${esc(r.name)}">`).join(""); }).catch(() => {});
 load(); setInterval(load, 5 * 60 * 1000);
